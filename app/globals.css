@@ -243,48 +243,48 @@ h1, h2, h3 { line-height: 1.25; }
 .official-link small { margin-top: 0.15rem; color: #71817b; font-size: 0.68rem; }
 .official-link svg { width: 0.95rem; height: 0.95rem; flex-shrink: 0; color: #0b7658; }
 
-.print-sheet { background: #fff; color: #111; font-family: Baskerville, "Libre Baskerville", "Book Antiqua", serif; font-size: 10.5pt; }
-.print-header { display: flex; align-items: center; justify-content: center; gap: 2.2mm; padding-bottom: 0; }
-.print-logo { width: 14mm; height: auto; object-fit: contain; }
-.print-brand h1 { color: #111; font-size: 17pt; font-weight: 400; line-height: 1.1; }
-.print-brand p { margin-top: 0.2mm; color: #111; font-size: 9.5pt; line-height: 1.15; }
-.print-brand .print-school { margin-top: 0.7mm; font-size: 9.7pt; }
+.print-sheet { background: #fff; color: #111; font-family: Baskerville, "Libre Baskerville", "Book Antiqua", serif; font-size: 9.5pt; }
+.print-header { display: flex; align-items: center; justify-content: center; gap: 2mm; padding-bottom: 0; }
+.print-logo { width: 12.5mm; height: auto; object-fit: contain; }
+.print-brand h1 { color: #111; font-size: 15.5pt; font-weight: 400; line-height: 1.05; }
+.print-brand p { margin-top: 0.15mm; color: #111; font-size: 8.3pt; line-height: 1.1; }
+.print-brand .print-school { margin-top: 0.45mm; font-size: 8.5pt; }
 .print-form-heading { text-align: center; }
-.print-form-heading h2 { margin-top: 2.5mm; color: #111; font-size: 13pt; font-weight: 400; letter-spacing: 0.045em; }
-.print-form-heading > p { margin-top: 0.5mm; color: #111; font-size: 9.5pt; }
-.print-bank { display: flex; flex-direction: column; gap: 0.15mm; margin-top: 0.7mm; color: #111; font-size: 9.5pt; text-decoration: underline; text-underline-offset: 0.8mm; }
-.print-lines { display: grid; gap: 1.15mm; margin: 3.5mm 2mm 0; }
+.print-form-heading h2 { margin-top: 1.8mm; color: #111; font-size: 12pt; font-weight: 400; letter-spacing: 0.04em; line-height: 1; }
+.print-form-heading > p { margin-top: 0.4mm; color: #111; font-size: 8.3pt; line-height: 1.08; }
+.print-bank { display: flex; flex-direction: column; gap: 0.05mm; margin-top: 0.55mm; color: #111; font-size: 8.2pt; line-height: 1.2; text-decoration: underline; text-underline-offset: 0.65mm; }
+.print-lines { display: grid; gap: 0.85mm; margin: 2.8mm 2mm 0; }
 .print-line { display: grid; grid-template-columns: 40mm 4mm minmax(0, 1fr); align-items: end; min-width: 0; }
 .print-line > span { white-space: nowrap; }
 .print-line > b { font-weight: 400; text-align: center; }
-.print-line > strong { min-height: 5mm; overflow: hidden; border-bottom: 0.35mm solid #222; padding: 0 1.5mm 0.6mm; font-weight: 400; white-space: nowrap; }
-.print-line-split { display: grid; grid-template-columns: 1.18fr 0.82fr; gap: 10mm; }
+.print-line > strong { min-height: 4.5mm; overflow: hidden; border-bottom: 0.3mm solid #222; padding: 0 1.3mm 0.4mm; font-weight: 400; line-height: 1.08; white-space: nowrap; }
+.print-line-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12mm; }
 .print-line-split .print-line:first-child { grid-template-columns: 40mm 4mm minmax(0, 1fr); }
 .print-line-split .print-line:last-child { grid-template-columns: 18mm 4mm minmax(0, 1fr); }
-.print-course-label { margin: 5mm 0 2mm; color: #111; font-size: 11pt; font-weight: 400; }
+.print-course-label { margin: 3.5mm 0 1.5mm; color: #111; font-size: 10pt; font-weight: 400; line-height: 1; }
 .print-table { width: 100%; border-collapse: collapse; }
-.print-table th, .print-table td { border: 0.35mm solid #111; padding: 1.8mm 2mm; color: #111; text-align: left; vertical-align: middle; }
-.print-table th { background: #e5e5e5; color: #111; font-size: 9pt; font-weight: 400; text-align: center; text-transform: none; }
-.print-table td { font-size: 9pt; }
+.print-table th, .print-table td { border: 0.3mm solid #111; padding: 1.3mm 1.7mm; color: #111; line-height: 1.15; text-align: left; vertical-align: middle; }
+.print-table th { background: #e5e5e5; color: #111; font-size: 8.1pt; font-weight: 400; text-align: center; text-transform: none; }
+.print-table td { font-size: 8.2pt; }
 .print-table tbody tr:nth-child(odd) td { background: #f1f1f1; }
 .print-table tbody tr:nth-child(even) td { background: #fff; }
 .print-table th:first-child, .print-table td:first-child { width: 15mm; }
 .print-table th:nth-child(2), .print-table td:nth-child(2) { width: 26mm; }
 .print-table th:nth-child(4), .print-table td:nth-child(4) { width: 20mm; text-align: center; }
-.print-course-summary { display: grid; gap: 1.2mm; margin-top: 4mm; }
+.print-course-summary { display: grid; gap: 0.8mm; margin-top: 3mm; font-size: 8.5pt; line-height: 1.12; }
 .print-course-summary p { display: grid; grid-template-columns: 43mm 5mm 1fr; align-items: end; margin: 0; }
 .print-course-summary b { font-weight: 400; text-align: center; }
 .print-course-summary strong { width: fit-content; min-width: 12mm; border-bottom: 0.3mm solid #222; font-weight: 400; text-align: center; }
-.print-fee-table { width: 100%; margin-top: 4mm; border-collapse: collapse; }
-.print-fee-table th, .print-fee-table td { border: 0.35mm solid #111; padding: 1.65mm 2mm; color: #111; font-size: 9pt; vertical-align: middle; }
+.print-fee-table { width: 100%; margin-top: 3mm; border-collapse: collapse; break-inside: avoid; page-break-inside: avoid; }
+.print-fee-table th, .print-fee-table td { border: 0.3mm solid #111; padding: 1.2mm 1.7mm; color: #111; font-size: 8pt; line-height: 1.15; vertical-align: middle; }
 .print-fee-table th { background: #e5e5e5; font-weight: 400; text-align: center; }
 .print-fee-table th:last-child, .print-fee-table td:last-child { width: 29mm; text-align: right; white-space: nowrap; }
 .print-fee-table tbody tr:nth-child(odd) td { background: #f1f1f1; }
 .print-fee-table tbody tr:nth-child(even) td { background: #fff; }
 .print-fee-table tfoot td { border-top-width: 0.6mm; background: #fff; font-weight: 700; }
 .print-fee-table tfoot td:first-child { text-align: right; }
-.print-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 38mm; margin-top: 18mm; }
-.print-signatures span { border-top: 0.45mm solid #222; padding-top: 2mm; color: #111; font-size: 9pt; text-align: center; }
+.print-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 38mm; margin-top: 14mm; break-inside: avoid; page-break-inside: avoid; }
+.print-signatures span { border-top: 0.4mm solid #222; padding-top: 1.5mm; color: #111; font-size: 8.2pt; line-height: 1.1; text-align: center; }
 
 @page { size: A4; margin: 0; }
 
@@ -293,7 +293,7 @@ h1, h2, h3 { line-height: 1.25; }
   body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .form-theme { background: white !important; }
   #top { max-width: none; padding: 0; }
-  .print-sheet { display: block !important; min-height: 297mm; box-sizing: border-box; padding: 9mm 14mm 11mm; }
+  .print-sheet { display: block !important; min-height: 297mm; box-sizing: border-box; padding: 8mm 13mm; }
 }
 
 @media (max-width: 767px) {

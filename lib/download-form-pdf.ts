@@ -64,25 +64,25 @@ export async function downloadFormPdf(form: DownloadableForm) {
   const right = pageWidth - 14
   const center = pageWidth / 2
 
-  doc.addImage(logo, "PNG", 55, 8, 12, 11)
-  doc.setFontSize(16)
-  doc.text("Bangladesh Open University", 71, 12.5)
-  doc.setFontSize(8.5)
-  doc.text("School of Science and Technology", 71, 16.1)
-  doc.text("Board Bazar, Gazipur-1705, Bangladesh", 71, 19.2)
-
-  doc.setFontSize(12)
-  doc.text(form.formTitle, center, 26, { align: "center" })
-  doc.setFontSize(8.5)
-  doc.text("(Bank receipt must be enclosed with the Form)", center, 30.5, { align: "center" })
+  doc.addImage(logo, "PNG", 56, 7, 12, 11)
+  doc.setFontSize(15.5)
+  doc.text("Bangladesh Open University", 72, 11.5)
   doc.setFontSize(8.2)
-  doc.text("Janata Bank Ltd., BOU Campus Branch", center, 34.5, { align: "center" })
-  doc.text("Online A/C: SND 09030320000411", center, 38, { align: "center" })
-  doc.line(70.2, 35, 139.8, 35)
-  doc.line(72.5, 38.5, 137.5, 38.5)
+  doc.text("School of Science and Technology", 72, 15)
+  doc.text("Board Bazar, Gazipur-1705, Bangladesh", 72, 18)
+
+  doc.setFontSize(11.5)
+  doc.text(form.formTitle, center, 23.5, { align: "center" })
+  doc.setFontSize(8)
+  doc.text("(Bank receipt must be enclosed with the Form)", center, 27.2, { align: "center" })
+  doc.setFontSize(7.8)
+  doc.text("Janata Bank Ltd., BOU Campus Branch", center, 30.7, { align: "center" })
+  doc.text("Online A/C: SND 09030320000411", center, 34, { align: "center" })
+  doc.line(72.5, 31.2, 137.5, 31.2)
+  doc.line(74.5, 34.5, 135.5, 34.5)
 
   const lineField = (label: string, value: string, y: number, labelX = left, valueX = 55, endX = right) => {
-    doc.setFontSize(9)
+    doc.setFontSize(8.7)
     doc.text(label, labelX, y)
     doc.text(":", valueX - 4, y)
     doc.text(value || " ", valueX, y)
@@ -90,15 +90,15 @@ export async function downloadFormPdf(form: DownloadableForm) {
     doc.line(valueX, y + 0.8, endX, y + 0.8)
   }
 
-  lineField("Student ID", form.studentId, 44)
-  lineField("Student Name", form.studentName, 49.5)
-  lineField("Year & Semester", form.yearAndSemester, 55)
-  lineField("Study Centre", form.studyCentre, 60.5)
-  lineField("Session", form.session, 66, left, 47, 101)
-  lineField("Term", form.term, 66, 112, 130, right)
+  lineField("Student ID", form.studentId, 41)
+  lineField("Student Name", form.studentName, 46)
+  lineField("Year & Semester", form.yearAndSemester, 51)
+  lineField("Study Centre", form.studyCentre, 56)
+  lineField("Session", form.session, 61, left, 55, 106)
+  lineField("Term", form.term, 61, 116, 134, right)
 
-  doc.setFontSize(9.5)
-  doc.text(form.courseSectionLabel, left, 72)
+  doc.setFontSize(9.3)
+  doc.text(form.courseSectionLabel, left, 67)
 
   const courseHead = form.showGrade
     ? [["SL. N", "Code", "Title", "Credit", "Grade"]]
@@ -110,12 +110,12 @@ export async function downloadFormPdf(form: DownloadableForm) {
   })
 
   autoTable(doc, {
-    startY: 74,
+    startY: 69,
     head: courseHead,
     body: courseBody,
     margin: { left, right: 14 },
     theme: "grid",
-    styles: { font: "Baskerville", fontSize: 7.7, textColor: [18, 18, 18], lineColor: [35, 35, 35], lineWidth: 0.2, cellPadding: 1.6, valign: "middle" },
+    styles: { font: "Baskerville", fontSize: 8, textColor: [18, 18, 18], lineColor: [35, 35, 35], lineWidth: 0.2, cellPadding: 1.35, valign: "middle" },
     headStyles: { fillColor: [229, 229, 229], fontStyle: "normal", halign: "center" },
     alternateRowStyles: { fillColor: [242, 242, 242] },
     columnStyles: {
@@ -127,24 +127,24 @@ export async function downloadFormPdf(form: DownloadableForm) {
     },
   })
 
-  let currentY = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 76) + 5
-  doc.setFontSize(9)
+  let currentY = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 72) + 4
+  doc.setFontSize(8.5)
   doc.text("Total Number of Course", left, currentY)
   doc.text(":", 62, currentY)
   doc.text(String(form.courses.length), 67, currentY)
-  currentY += 4.5
+  currentY += 4.3
   doc.text("Total Credit", left, currentY)
   doc.text(":", 62, currentY)
   doc.text(String(form.totalCredits), 67, currentY)
 
   autoTable(doc, {
-    startY: currentY + 4,
+    startY: currentY + 3.5,
     head: [[form.feeTitle, "Amount"]],
     body: form.feeRows.map((row) => [row.label, `BDT ${money(row.amount)}/-`]),
     foot: [["Total", `BDT ${money(form.total)}/-`]],
     margin: { left, right: 14 },
     theme: "grid",
-    styles: { font: "Baskerville", fontSize: 7.8, textColor: [18, 18, 18], lineColor: [35, 35, 35], lineWidth: 0.2, cellPadding: 1.6, valign: "middle" },
+    styles: { font: "Baskerville", fontSize: 7.8, textColor: [18, 18, 18], lineColor: [35, 35, 35], lineWidth: 0.2, cellPadding: 1.25, valign: "middle" },
     headStyles: { fillColor: [229, 229, 229], fontStyle: "normal", halign: "center" },
     alternateRowStyles: { fillColor: [242, 242, 242] },
     footStyles: { fillColor: [255, 255, 255], textColor: [18, 18, 18], fontStyle: "bold", lineWidth: 0.35 },
@@ -154,10 +154,10 @@ export async function downloadFormPdf(form: DownloadableForm) {
     },
   })
 
-  currentY = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || currentY + 10) + 22
+  currentY = ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || currentY + 10) + 17
   if (currentY > 280) {
     doc.addPage()
-    currentY = 35
+    currentY = 30
   }
   doc.setLineWidth(0.3)
   doc.line(left, currentY, 78, currentY)
