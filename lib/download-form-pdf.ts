@@ -44,12 +44,23 @@ async function imageAsDataUrl(url: string) {
   })
 }
 
+type PdfAssets = { regularFont: string; boldFont: string; logo: string }
+
+let pdfAssetsPromise: Promise<PdfAssets> | null = null
+
+export function preloadPdfAssets() {
+  if (!pdfAssetsPromise) {
+    pdfAssetsPromise = Promise.all([
+      fileAsBase64("/fonts/libre-baskerville-regular.ttf"),
+      fileAsBase64("/fonts/libre-baskerville-bold.ttf"),
+      imageAsDataUrl("/bou-logo.png"),
+    ]).then(([regularFont, boldFont, logo]) => ({ regularFont, boldFont, logo }))
+  }
+  return pdfAssetsPromise
+}
+
 export async function downloadFormPdf(form: DownloadableForm) {
-  const [regularFont, boldFont, logo] = await Promise.all([
-    fileAsBase64("/fonts/libre-baskerville-regular.ttf"),
-    fileAsBase64("/fonts/libre-baskerville-bold.ttf"),
-    imageAsDataUrl("/bou-logo.png"),
-  ])
+  const { regularFont, boldFont, logo } = await preloadPdfAssets()
 
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" })
   doc.addFileToVFS("Baskerville-Regular.ttf", regularFont)
@@ -166,5 +177,13 @@ export async function downloadFormPdf(form: DownloadableForm) {
   doc.text("Signature of the Program Officer", 46, currentY + 4, { align: "center" })
   doc.text("Signature of the Program Coordinator", 160, currentY + 4, { align: "center" })
 
-  doc.save(form.fileName)
+  const pdfUrl = window.URL.createObjectURL(doc.output("blob"))
+  const downloadLink = document.createElement("a")
+  downloadLink.href = pdfUrl
+  downloadLink.download = form.fileName
+  downloadLink.style.display = "none"
+  document.body.appendChild(downloadLink)
+  downloadLink.click()
+  downloadLink.remove()
+  return pdfUrl
 }

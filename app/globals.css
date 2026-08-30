@@ -26,18 +26,18 @@
   --card-foreground: #171717;
   --popover: #ffffff;
   --popover-foreground: #171717;
-  --primary: #075e45;
+  --primary: #073b82;
   --primary-foreground: #ffffff;
-  --secondary: #edf4f1;
-  --secondary-foreground: #17392e;
+  --secondary: #edf3fb;
+  --secondary-foreground: #073b82;
   --muted: #f1f5f3;
   --muted-foreground: #64766f;
-  --accent: #e7f2ed;
-  --accent-foreground: #075e45;
+  --accent: #e9f0fb;
+  --accent-foreground: #073b82;
   --destructive: #e7000b;
   --border: #d8e1dd;
   --input: #cbd7d2;
-  --ring: #2b8368;
+  --ring: #1b5caf;
   --chart-1: #f54900;
   --chart-2: #009689;
   --chart-3: #104e64;
@@ -109,6 +109,74 @@ button, a, input, textarea, select {
 }
 
 h1, h2, h3 { line-height: 1.25; }
+
+.brand-header {
+  border-color: rgb(7 59 130 / 0.18);
+  box-shadow: 0 7px 26px rgb(7 59 130 / 0.07);
+}
+
+.brand-logo {
+  border: 2px solid rgb(7 59 130 / 0.16);
+  background: white;
+  box-shadow: 0 5px 16px rgb(7 59 130 / 0.16);
+}
+
+.button-pop {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.button-pop::after {
+  position: absolute;
+  inset: -70% auto -70% -35%;
+  z-index: -1;
+  width: 24%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.38), transparent);
+  content: "";
+  transform: rotate(18deg) translateX(-260%);
+  transition: transform 520ms ease;
+}
+
+.button-pop:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgb(7 59 130 / 0.2);
+}
+
+.button-pop:hover:not(:disabled)::after { transform: rotate(18deg) translateX(780%); }
+.button-pop:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+
+.brand-primary-button {
+  border-color: #073b82 !important;
+  background: linear-gradient(135deg, #073b82, #0c5bb5) !important;
+  color: white !important;
+  box-shadow: 0 7px 18px rgb(7 59 130 / 0.2);
+}
+
+.brand-primary-button:hover { background: linear-gradient(135deg, #062f68, #084b98) !important; }
+
+.brand-accent-button {
+  border-color: #cf0a25 !important;
+  background: linear-gradient(135deg, #e10828, #bd071f) !important;
+  color: white !important;
+  box-shadow: 0 8px 22px rgb(225 8 40 / 0.24);
+}
+
+.brand-accent-button:hover { background: linear-gradient(135deg, #c90723, #a5061c) !important; }
+
+.brand-outline-button {
+  border-color: rgb(7 59 130 / 0.34) !important;
+  background: #f7faff !important;
+  color: #073b82 !important;
+}
+
+.brand-outline-button:hover { border-color: #073b82 !important; background: #edf3fb !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .button-pop, .button-pop::after { transition: none; }
+  .button-pop:hover:not(:disabled), .button-pop:active:not(:disabled) { transform: none; }
+}
 
 .form-theme {
   --theme-page: #f3f5f4;
