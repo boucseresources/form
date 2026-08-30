@@ -1,37 +1,55 @@
 # BOU CSE Form & Eligibility Hub
 
-Independent Next.js project for preparing BOU CSE registration, failed/absent and grade-improvement forms.
+An unofficial, privacy-friendly helper for preparing BOU B.Sc in CSE course registration, failed/absent re-exam, and grade-improvement forms.
 
-## Features
+## What it does
 
-- Adaptive form for all three application categories
-- Local-only result text parsing and eligibility checking
-- Editable notice fees, deadlines and late-fine settings
-- Browser-local draft saving; no student data is uploaded
-- Direct A4 PDF download with BOU logo and embedded Baskerville font
-- Responsive Bangla-first interface
+- One adaptive form with context-sensitive fields for all three application types.
+- Editable fee, deadline, and late-fine inputs; no annual code change is required when a notice changes.
+- Full eight-semester course catalog from the CSE Handbook.
+- Handbook-based improvement eligibility explanations.
+- Local-only result-text parsing and draft saving. No database, account, or server-side student data.
+- Browser print layout for A4 PDF output.
+- Direct links to official BOU results, handbooks, program details, and notices.
 
-## Run locally
+## Deploy to Vercel
+
+1. Upload this project to GitHub, or import the project folder directly in Vercel.
+2. Keep the default detected framework: **Next.js**.
+3. Deploy. `vercel.json` runs `npm run build:vercel` automatically.
+
+No environment variables, database, or external service is required.
+
+## Local development
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+For a Vercel-compatible production check:
 
-## Deploy to Vercel
+```bash
+npm run build:vercel
+```
 
-1. Extract this ZIP.
-2. Upload the folder to GitHub and import it in Vercel, or use the Vercel CLI.
-3. Keep the detected framework as **Next.js** and click **Deploy**.
+## Admin: update a future notice
 
-No environment variables, database, API key or separately managed server is required.
+The changing notice data is centralized in one file:
 
-## Update reference data
+- **data/site-config.json**
 
-- Courses, official links and fee defaults: `lib/bou-data.ts`
-- Form behaviour and UI: `app/form-hub.tsx`
-- Website and PDF styling: `app/globals.css`
+Update the current term, dates, fee amounts, offered courseCodes, registration profiles, demo-video URL, or Quick Help group there. Students can then press **বর্তমান notice-এর তথ্য বসান**; a fresh form stays blank until they explicitly apply the preset.
 
-Students should always verify fees, dates and course offerings against the latest official BOU notice.
+See **ADMIN_UPDATE_GUIDE.md** for the short Bangla walkthrough.
+
+## Updating stable reference data
+
+- Course catalog and official links: **lib/bou-data.ts**
+- Notice-changing data: **data/site-config.json**
+
+The form always lets the student override fee and fine values from the current notice.
+
+## Disclaimer
+
+This is not an official Bangladesh Open University service. Students must verify fees, dates, bank details, course offerings, and submission requirements against the latest official BOU notice and their study centre.

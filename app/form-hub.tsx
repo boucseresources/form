@@ -13,6 +13,8 @@ import {
   FileCheck2,
   FileText,
   Link2,
+  MessageCircleQuestion,
+  PlayCircle,
   Printer,
   RotateCcw,
   Search,
@@ -25,6 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -40,6 +43,7 @@ import {
   semesterNames,
 } from "@/lib/bou-data"
 import { downloadFormPdf, preloadPdfAssets } from "@/lib/download-form-pdf"
+import siteConfig from "@/data/site-config.json"
 
 type ImportedGrade = { code: string; grade: string }
 type Draft = {
@@ -82,17 +86,6 @@ function localIsoDate(date = new Date()) {
   return local.toISOString().slice(0, 10)
 }
 
-const paymentDetails = {
-  bankName: "Janata Bank Ltd.",
-  bankBranch: "BOU Campus Branch",
-  accountNumber: "SND 09030320000411",
-}
-
-const studyCenters = [
-  { code: "801", name: "Dhaka Regional Center (DRC)", bn: "ঢাকা আঞ্চলিক কেন্দ্র" },
-  { code: "020", name: "Dhaka University of Engineering and Technology (DUET)", bn: "ঢাকা প্রকৌশল ও প্রযুক্তি বিশ্ববিদ্যালয়" },
-]
-
 type RegistrationProfile = {
   session: string
   billableCredits: number
@@ -101,20 +94,25 @@ type RegistrationProfile = {
   noticeTotal: number
   certificate: number
   transcript: number
+  courseCodes: string[]
 }
 
-const registrationNotice = {
-  term: "252",
-  published: "14 August 2026",
-  registrationFrom: "21 September 2026",
-  registrationTo: "05 November 2026",
-  osapsUrl: "https://osapsnew.bou.ac.bd/login",
-  profiles: {
-    "1-2": { session: "2024-2025", billableCredits: 17, examCourses: 7, classStart: "11 September 2026", noticeTotal: 14221, certificate: 0, transcript: 0 },
-    "2-2": { session: "2022-2023", billableCredits: 18.5, examCourses: 9, classStart: "11 September 2026", noticeTotal: 15876, certificate: 0, transcript: 0 },
-    "3-2": { session: "2021-2022", billableCredits: 19.25, examCourses: 9, classStart: "18 September 2026", noticeTotal: 16372.5, certificate: 0, transcript: 0 },
-    "4-2": { session: "2020-2021", billableCredits: 17.25, examCourses: 7, classStart: "23 October 2026", noticeTotal: 15286.5, certificate: 500, transcript: 400 },
-  } as Record<string, RegistrationProfile>,
+const paymentDetails = siteConfig.payment
+const studyCenters = siteConfig.studyCenters
+const registrationNotice = siteConfig.registrationNotice as typeof siteConfig.registrationNotice & { profiles: Record<string, RegistrationProfile> }
+const examNotice = siteConfig.examNotice
+const demoVideoUrl = siteConfig.demoVideoUrl.trim()
+const quickHelpUrl = siteConfig.quickHelpUrl
+
+function videoEmbedUrl(url: string) {
+  if (!url) return ""
+  const shortId = url.match(/youtu\.be\/([^?&/]+)/)?.[1]
+  const watchId = url.match(/[?&]v=([^?&/]+)/)?.[1]
+  const embedId = url.match(/youtube\.com\/embed\/([^?&/]+)/)?.[1]
+  const youtubeId = shortId || watchId || embedId
+  if (youtubeId) return "https://www.youtube.com/embed/" + youtubeId
+  if (/facebook\.com/i.test(url)) return "https://www.facebook.com/plugins/video.php?href=" + encodeURIComponent(url) + "&show_text=false"
+  return url
 }
 
 const initialDraft: Draft = {
@@ -358,6 +356,44 @@ export function FormHub() {
     update("selectedCodes", codes)
   }
 
+  function applyRegistrationNotice() {
+    if (!registrationNotice.enabled || !registrationProfile) return
+    const offeredCodes = registrationProfile.courseCodes.filter((code) =>
+      courses.some((course) => course.code === code && course.semester === draft.semester),
+    )
+    setDraft((current) => ({
+      ...current,
+      term: registrationNotice.term,
+      session: registrationProfile.session,
+      selectedCodes: offeredCodes,
+      regBillableCredits: String(registrationProfile.billableCredits),
+      regExamCourseCount: String(registrationProfile.examCourses),
+      regPerCredit: String(registrationNotice.fees.perCredit),
+      regExamPerCourse: String(registrationNotice.fees.examPerCourse),
+      regSemesterFee: String(registrationNotice.fees.semesterRegistration),
+      regMarksheetFee: String(registrationNotice.fees.semesterMarksheet),
+      regDigitalIdFee: String(registrationNotice.fees.digitalId),
+      regCalendarFee: String(registrationNotice.fees.academicCalendar),
+      regCertificateFee: String(registrationProfile.certificate),
+      regTranscriptFee: String(registrationProfile.transcript),
+      includeCalendar: registrationNotice.fees.academicCalendar > 0,
+    }))
+  }
+
+  function applyExamNotice() {
+    if (!examNotice.enabled) return
+    setDraft((current) => ({
+      ...current,
+      term: examNotice.term,
+      courseFee: String(current.category === "improvement" ? examNotice.improvementFeePerCourse : examNotice.reExamFeePerCourse),
+      deadline: examNotice.deadline,
+      finalLateDate: examNotice.finalLateDate,
+      lateRateOne: String(examNotice.lateWeekOnePerCoursePerDay),
+      lateRateTwo: String(examNotice.lateWeekTwoPerCoursePerDay),
+      applyLateFee: Boolean(examNotice.deadline && examNotice.finalLateDate),
+    }))
+  }
+
   function toggleCourse(code: string) {
     setDraft((current) => ({
       ...current,
@@ -428,7 +464,7 @@ export function FormHub() {
   return (
     <main className={`form-theme form-theme-${draft.category} min-h-screen text-[#17231f]`}>
       <header className="brand-header border-b bg-white/95 backdrop-blur print:hidden">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:flex-nowrap sm:px-6 lg:px-8">
           <a href="#top" className="flex min-w-0 items-center gap-3">
             <Image src="/bou-cse-notes-logo.png" width={960} height={966} alt="BOU CSE Notes logo" className="brand-logo size-12 shrink-0 rounded-full object-contain" priority unoptimized />
             <span className="min-w-0">
@@ -436,9 +472,43 @@ export function FormHub() {
               <span className="block truncate text-sm font-medium text-[#d90b27]">ফর্ম ও যোগ্যতা সহায়িকা</span>
             </span>
           </a>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             <Badge variant="outline" className="hidden border-[#b9c9c2] text-[#40534c] md:inline-flex">খসড়া এই ডিভাইসে সংরক্ষিত থাকে</Badge>
-            <Button type="button" variant="outline" size="sm" onClick={useDemo} className="brand-outline-button button-pop"><Sparkles /> নমুনা দেখুন</Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button type="button" size="sm" className="video-demo-button button-pop"><PlayCircle /><span className="hidden sm:inline">ভিডিও ডেমো</span><span className="sm:hidden">ডেমো</span></Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl overflow-hidden border-[#b9cde8] bg-white p-0">
+                <DialogHeader className="border-b border-[#dfe8f4] bg-[#f5f9ff] px-5 py-4 text-left">
+                  <DialogTitle className="flex items-center gap-2 text-[#073b82]"><PlayCircle className="size-5 text-[#dc0a28]" /> কীভাবে form তৈরি করবেন</DialogTitle>
+                  <DialogDescription>ভিডিও দেখে অথবা নিচের চারটি ধাপ অনুসরণ করে সহজে PDF form বানান।</DialogDescription>
+                </DialogHeader>
+                <div className="p-5">
+                  {demoVideoUrl ? (
+                    <div className="aspect-video overflow-hidden rounded-xl border border-[#d6e1ef] bg-black">
+                      <iframe className="size-full" src={videoEmbedUrl(demoVideoUrl)} title="BOU CSE Form Desk video demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {["Form-এর ধরন নির্বাচন করুন", "শিক্ষার্থীর তথ্য লিখুন", "Semester ও course নির্বাচন করুন", "Fee যাচাই করে PDF download করুন"].map((step, index) => (
+                          <div key={step} className="flex items-start gap-3 rounded-xl border border-[#dce6f2] bg-[#f8fbff] p-3">
+                            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#073b82] text-sm font-bold text-white">{index + 1}</span>
+                            <p className="pt-0.5 text-sm font-semibold text-[#29445f]">{step}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-4 rounded-lg bg-[#fff4f5] px-3 py-2 text-sm text-[#8d2635]">Video link config-এ যোগ করা হয়নি। আপাতত এই quick guide ব্যবহার করুন।</p>
+                    </div>
+                  )}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button asChild className="brand-primary-button button-pop"><a href={quickHelpUrl} target="_blank" rel="noreferrer"><MessageCircleQuestion /> গ্রুপে সাহায্য চান</a></Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button asChild variant="outline" size="sm" className="quick-help-button button-pop"><a href={quickHelpUrl} target="_blank" rel="noreferrer"><MessageCircleQuestion /><span className="hidden lg:inline">Quick Help</span></a></Button>
+            <Button type="button" variant="outline" size="sm" onClick={useDemo} className="brand-outline-button button-pop"><Sparkles /><span className="hidden lg:inline">নমুনা দেখুন</span></Button>
           </div>
         </div>
       </header>
@@ -541,16 +611,19 @@ export function FormHub() {
                 </Field>
                 <Field label="কোর্স খুঁজুন"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 size-4 text-[#7a8b84]" /><Input className="pl-9" value={courseSearch} onChange={(event) => setCourseSearch(event.target.value)} placeholder="কোর্স কোড বা নাম" /></div></Field>
               </div>
-              {draft.category === "registration" && registrationProfile && <div className="notice-profile mt-4">
+              {draft.category === "registration" && registrationNotice.enabled && registrationProfile && <div className="notice-profile mt-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div><p className="text-xs font-bold uppercase tracking-[0.12em]">বর্তমান অফিসিয়াল প্রিসেট · Term {registrationNotice.term}</p><p className="mt-1 text-sm">প্রকাশ: {registrationNotice.published} · Session: {registrationProfile.session}</p></div>
-                  <Button asChild size="sm" className="brand-primary-button button-pop"><a href={registrationNotice.osapsUrl} target="_blank" rel="noreferrer">OSAPS-এ রেজিস্ট্রেশন <ExternalLink /></a></Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" onClick={applyRegistrationNotice} className="notice-apply-button button-pop"><Sparkles /> বর্তমান notice-এর তথ্য বসান</Button>
+                    <Button asChild size="sm" className="brand-primary-button button-pop"><a href={registrationNotice.osapsUrl} target="_blank" rel="noreferrer">OSAPS-এ রেজিস্ট্রেশন <ExternalLink /></a></Button>
+                  </div>
                 </div>
                 <div className="mt-4 grid gap-2 sm:grid-cols-3"><FixedDetail label="রেজিস্ট্রেশনের সময়" value={`${registrationNotice.registrationFrom} – ${registrationNotice.registrationTo}`} /><FixedDetail label="ক্লাস শুরু" value={registrationProfile.classStart} /><FixedDetail label="Notice-এর মোট" value={`৳${money(registrationProfile.noticeTotal)}`} /></div>
               </div>}
               {draft.category === "registration" && <div className="mt-4 flex flex-wrap gap-2">
-                <Button type="button" size="sm" variant="outline" onClick={selectAllSemesterCourses}>সব কোর্স নির্বাচন করুন</Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => update("selectedCodes", [])}>সব নির্বাচন বাতিল</Button>
+                <Button type="button" size="sm" onClick={selectAllSemesterCourses} disabled={!draft.semester} className="course-action-primary button-pop"><CheckCircle2 /> সব কোর্স নির্বাচন করুন</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => update("selectedCodes", [])} disabled={!courseCount} className="course-action-clear button-pop"><XCircle /> সব নির্বাচন বাতিল</Button>
               </div>}
               <div className="mt-4 overflow-hidden rounded-xl border border-[#dce3df]">
                 {semesterCourses.map((course) => {
@@ -596,6 +669,15 @@ export function FormHub() {
                 </div>
               ) : (
                 <div className="space-y-5">
+                  {examNotice.enabled && <div className="notice-profile">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div><p className="text-xs font-bold uppercase tracking-[0.12em]">বর্তমান পরীক্ষার notice · Term {examNotice.term}</p><p className="mt-1 text-sm">প্রকাশ: {examNotice.published}</p></div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" size="sm" onClick={applyExamNotice} className="notice-apply-button button-pop"><Sparkles /> বর্তমান notice-এর তথ্য বসান</Button>
+                        {examNotice.noticeUrl && <Button asChild size="sm" variant="outline" className="button-pop border-[#a8c2b8] bg-white"><a href={examNotice.noticeUrl} target="_blank" rel="noreferrer">Notice দেখুন <ExternalLink /></a></Button>}
+                      </div>
+                    </div>
+                  </div>}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <MoneyInput label={`${draft.category === "improvement" ? "ইমপ্রুভমেন্ট" : "পুনঃপরীক্ষা"} ফি · প্রতি কোর্স`} info="সব কোর্সের মোট নয়—একটি কোর্সের মূল ফি লিখুন।" value={draft.courseFee} onChange={(value) => update("courseFee", value)} />
                     <FixedDetail label="যে তারিখ ধরে হিসাব হচ্ছে" value={effectiveSubmissionDate ? `${effectiveSubmissionDate}${effectiveSubmissionDate === localIsoDate() ? " · আজ" : ""}` : "তারিখ নির্বাচন করুন"} />
@@ -615,7 +697,7 @@ export function FormHub() {
                       {draft.applyLateFee && <MoneyInput label="৮–১৪ দিন · প্রতি কোর্স/দিন" info="দ্বিতীয় সপ্তাহে প্রতিটি নির্বাচিত কোর্সের জন্য প্রতিদিনের জরিমানা।" value={draft.lateRateTwo} onChange={(value) => update("lateRateTwo", value)} />}
                     </div>
                   </details>
-                  {draft.category === "improvement" && <p className="text-sm leading-6 text-[#687a73]">Handbook-এর ৩৫ পৃষ্ঠা অনুযায়ী ইমপ্রুভমেন্ট ফি সাধারণ পুনঃপরীক্ষার ফির দ্বিগুণ। প্রাথমিক ৳৭৭৪ এসেছে ৳৩৮৭ × ২ থেকে; তবে আপনার দেওয়া সর্বশেষ নোটিশের অঙ্কই চূড়ান্ত হিসাব নিয়ন্ত্রণ করবে।</p>}
+                  {draft.category === "improvement" && <p className="text-sm leading-6 text-[#687a73]">Handbook-এর ৩৫ পৃষ্ঠা অনুযায়ী ইমপ্রুভমেন্ট ফি সাধারণ পুনঃপরীক্ষার ফির দ্বিগুণ। তবে সর্বশেষ notice-এ দেওয়া অঙ্কই form-এর চূড়ান্ত হিসাব হিসেবে লিখুন।</p>}
                 </div>
               )}
             </Panel>
@@ -629,6 +711,10 @@ export function FormHub() {
             <section className="rounded-2xl border border-[#d8e1dd] bg-white p-4 sm:p-6">
               <div className="mb-4 flex items-center gap-3"><Link2 className="size-5 text-[#0b7658]" /><div><p className="step-kicker">অফিসিয়াল উৎস</p><h2 className="section-title">জমা দেওয়ার আগে যাচাই করুন</h2></div></div>
               <div className="grid gap-2 sm:grid-cols-2">{officialLinks.map((link) => <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="official-link"><span><strong>{link.label}</strong><small>{link.note}</small></span><ExternalLink /></a>)}</div>
+              <div className="quick-help-card mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl p-4">
+                <div><p className="font-bold text-[#173c70]">Quick Help দরকার?</p><p className="mt-1 text-sm text-[#526b89]">Form বা notice বুঝতে সমস্যা হলে BOU CSE Notes group-এ প্রশ্ন post করুন।</p></div>
+                <Button asChild className="brand-primary-button button-pop"><a href={quickHelpUrl} target="_blank" rel="noreferrer"><MessageCircleQuestion /> গ্রুপে পোস্ট করুন <ExternalLink /></a></Button>
+              </div>
             </section>
           </div>
 

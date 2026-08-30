@@ -1,0 +1,92 @@
+{
+  "configUpdated": "2026-08-30",
+  "demoVideoUrl": "",
+  "quickHelpUrl": "https://www.facebook.com/share/g/1EfZHALexy/",
+  "payment": {
+    "bankName": "Janata Bank Ltd.",
+    "bankBranch": "BOU Campus Branch",
+    "accountNumber": "SND 09030320000411"
+  },
+  "studyCenters": [
+    {
+      "code": "801",
+      "name": "Dhaka Regional Center (DRC)",
+      "bn": "ঢাকা আঞ্চলিক কেন্দ্র"
+    },
+    {
+      "code": "020",
+      "name": "Dhaka University of Engineering and Technology (DUET)",
+      "bn": "ঢাকা প্রকৌশল ও প্রযুক্তি বিশ্ববিদ্যালয়"
+    }
+  ],
+  "registrationNotice": {
+    "enabled": true,
+    "term": "252",
+    "published": "14 August 2026",
+    "registrationFrom": "21 September 2026",
+    "registrationTo": "05 November 2026",
+    "osapsUrl": "https://osapsnew.bou.ac.bd/login",
+    "fees": {
+      "perCredit": 662,
+      "examPerCourse": 331,
+      "semesterRegistration": 500,
+      "semesterMarksheet": 100,
+      "digitalId": 200,
+      "academicCalendar": 50
+    },
+    "profiles": {
+      "1-2": {
+        "session": "2024-2025",
+        "billableCredits": 17,
+        "examCourses": 7,
+        "classStart": "11 September 2026",
+        "noticeTotal": 14221,
+        "certificate": 0,
+        "transcript": 0,
+        "courseCodes": ["MAT1231", "HUM1222", "EEE1233", "EEE12P4", "CSE1235", "CSE12P6", "CSE1237", "CSE12P8"]
+      },
+      "2-2": {
+        "session": "2022-2023",
+        "billableCredits": 18.5,
+        "examCourses": 9,
+        "classStart": "11 September 2026",
+        "noticeTotal": 15876,
+        "certificate": 0,
+        "transcript": 0,
+        "courseCodes": ["ECO2221", "CSE2232", "CSE22P3", "CSE2234", "CSE22P5", "CSE2236", "CSE22P7", "CSE2238", "CSE22P9"]
+      },
+      "3-2": {
+        "session": "2021-2022",
+        "billableCredits": 19.25,
+        "examCourses": 9,
+        "classStart": "18 September 2026",
+        "noticeTotal": 16372.5,
+        "certificate": 0,
+        "transcript": 0,
+        "courseCodes": ["CSE3221", "CSE3232", "CSE3233", "CSE32P4", "CSE3235", "CSE32P6", "CSE3237", "CSE32P8", "CSE32P9"]
+      },
+      "4-2": {
+        "session": "2020-2021",
+        "billableCredits": 17.25,
+        "examCourses": 7,
+        "classStart": "23 October 2026",
+        "noticeTotal": 15286.5,
+        "certificate": 500,
+        "transcript": 400,
+        "courseCodes": ["CSE4231", "CSE4232", "CSE42P3", "CSE4234", "CSE42P5", "CSE4246", "CSE4227"]
+      }
+    }
+  },
+  "examNotice": {
+    "enabled": false,
+    "term": "",
+    "published": "",
+    "deadline": "",
+    "finalLateDate": "",
+    "reExamFeePerCourse": 0,
+    "improvementFeePerCourse": 0,
+    "lateWeekOnePerCoursePerDay": 0,
+    "lateWeekTwoPerCoursePerDay": 0,
+    "noticeUrl": ""
+  }
+}

@@ -7,8 +7,9 @@ export const metadata: Metadata = {
   title: "BOU CSE Form & Eligibility Hub",
   description: "Prepare BOU CSE registration, re-exam and improvement forms with editable fee calculation and handbook-based eligibility guidance.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/bou-cse-notes-logo.png",
+    shortcut: "/bou-cse-notes-logo.png",
+    apple: "/bou-cse-notes-logo.png",
   },
 };
 

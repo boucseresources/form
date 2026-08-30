@@ -173,9 +173,57 @@ h1, h2, h3 { line-height: 1.25; }
 
 .brand-outline-button:hover { border-color: #073b82 !important; background: #edf3fb !important; }
 
+.video-demo-button {
+  border-color: #d70827 !important;
+  background: linear-gradient(135deg, #e30a2c, #b80520) !important;
+  color: white !important;
+  box-shadow: 0 7px 20px rgb(215 8 39 / 0.26);
+  animation: attention-glow 2.8s ease-in-out infinite;
+}
+
+.quick-help-button {
+  border-color: #168653 !important;
+  background: #effaf5 !important;
+  color: #0a6c42 !important;
+}
+
+.notice-apply-button {
+  border-color: #ca7a05 !important;
+  background: linear-gradient(135deg, #f0a11c, #d57a05) !important;
+  color: #2f1b00 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 20px rgb(202 122 5 / 0.24);
+}
+
+.course-action-primary {
+  border-color: #073b82 !important;
+  background: linear-gradient(135deg, #073b82, #156bc6) !important;
+  color: white !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 20px rgb(7 59 130 / 0.22);
+}
+
+.course-action-clear {
+  border-color: rgb(205 9 38 / 0.36) !important;
+  background: #fff7f8 !important;
+  color: #b50923 !important;
+  font-weight: 700 !important;
+}
+
+.quick-help-card {
+  border: 1px solid #bfd3ec;
+  background: linear-gradient(135deg, #f4f8ff, #eef8f4);
+}
+
+@keyframes attention-glow {
+  0%, 100% { box-shadow: 0 7px 20px rgb(215 8 39 / 0.24); }
+  50% { box-shadow: 0 9px 28px rgb(215 8 39 / 0.42); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .button-pop, .button-pop::after { transition: none; }
   .button-pop:hover:not(:disabled), .button-pop:active:not(:disabled) { transform: none; }
+  .video-demo-button { animation: none; }
 }
 
 .form-theme {

@@ -108,27 +108,6 @@ export const gradePoints: Record<string, number> = {
   F: 0,
 }
 
-export const noticeConfig = {
-  deadline: "2026-08-20",
-  finalLateDate: "2026-09-03",
-  reExamFee: 387,
-  improvementMultiplier: 2,
-  lateWeekOnePerCoursePerDay: 20,
-  lateWeekTwoPerCoursePerDay: 30,
-}
-
-export const registrationFees = {
-  perCredit: 662,
-  examPerCourse: 331,
-  semesterRegistration: 500,
-  semesterMarksheet: 100,
-  digitalId: 200,
-  academicCalendar: 50,
-  originalCertificate: 500,
-  transcript: 400,
-  sourceUpdated: "Official B.Sc in CSE program page · checked 27 Aug 2026",
-}
-
 export const officialLinks = [
   { label: "BOU CSE প্রোগ্রাম", url: "https://www.bou.ac.bd/SST/BSCSE", note: "অফিসিয়াল ফি ও প্রোগ্রামের তথ্য" },
   { label: "CSE স্টাডি সেন্টার", url: "https://bousst.edu.bd/study-centers/", note: "DRC ও DUET-এর নাম এবং কোড" },
