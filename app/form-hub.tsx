@@ -107,6 +107,25 @@ const registrationNotice = siteConfig.registrationNotice as typeof siteConfig.re
 const examNotice = siteConfig.examNotice
 const demoVideoUrl = siteConfig.demoVideoUrl.trim()
 const quickHelpUrl = siteConfig.quickHelpUrl
+const sessionOptions = Array.from({ length: 14 }, (_, index) => {
+  const startYear = 2016 + index
+  return `${startYear}-${String(startYear + 1).slice(-2)}`
+})
+
+function normalizeSession(value: string) {
+  const trimmed = value.trim()
+  const match = trimmed.match(/^(\d{4})[-–](\d{2}|\d{4})$/)
+  return match ? `${match[1]}-${match[2].slice(-2)}` : trimmed
+}
+
+function sessionStartYear(value: string) {
+  const match = normalizeSession(value).match(/^(\d{4})-/)
+  return match ? Number(match[1]) : null
+}
+
+function configuredFee(value: number) {
+  return value > 0 ? String(value) : ""
+}
 
 function videoEmbedUrl(url: string) {
   if (!url) return ""
@@ -135,19 +154,19 @@ const initialDraft: Draft = {
   selectedCodes: [],
   importedGrades: [],
   includeDigitalId: false,
-  includeCalendar: false,
+  includeCalendar: registrationNotice.fees.academicCalendar > 0,
   courseFee: "",
   deadline: "",
   finalLateDate: "",
   lateRateOne: "",
   lateRateTwo: "",
   applyLateFee: false,
-  regPerCredit: "",
-  regExamPerCourse: "",
-  regSemesterFee: "",
-  regMarksheetFee: "",
+  regPerCredit: configuredFee(registrationNotice.fees.perCredit),
+  regExamPerCourse: configuredFee(registrationNotice.fees.examPerCourse),
+  regSemesterFee: configuredFee(registrationNotice.fees.semesterRegistration),
+  regMarksheetFee: configuredFee(registrationNotice.fees.semesterMarksheet),
   regDigitalIdFee: "",
-  regCalendarFee: "",
+  regCalendarFee: configuredFee(registrationNotice.fees.academicCalendar),
   regCertificateFee: "",
   regTranscriptFee: "",
   regBillableCredits: "",
@@ -264,6 +283,7 @@ export function FormHub() {
             selectionModeVersion: "manual-v2",
             selectedCodes: shouldClearLegacyAutoSelection ? [] : saved.selectedCodes || [],
             submissionDate: saved.submissionDate || localIsoDate(),
+            session: saved.session ? normalizeSession(saved.session) : initialDraft.session,
             studyCenter: validCenter ? saved.studyCenter! : initialDraft.studyCenter,
             ...paymentDetails,
           })
@@ -295,6 +315,14 @@ export function FormHub() {
   const courseCount = selectedCourses.length
   const creditCount = selectedCourses.reduce((sum, course) => sum + course.credit, 0)
   const registrationProfile = registrationNotice.profiles[draft.semester]
+  const onlineRegistrationFromSession = normalizeSession(registrationNotice.onlineRegistrationFromSession)
+  const selectedSessionStartYear = sessionStartYear(draft.session)
+  const onlineRegistrationStartYear = sessionStartYear(onlineRegistrationFromSession) ?? 2024
+  const isOnlineRegistration = draft.category === "registration" && selectedSessionStartYear !== null && selectedSessionStartYear >= onlineRegistrationStartYear
+  const isManualRegistration = draft.category === "registration" && selectedSessionStartYear !== null && selectedSessionStartYear < onlineRegistrationStartYear
+  const availableSessions = draft.session && !sessionOptions.includes(draft.session)
+    ? [draft.session, ...sessionOptions]
+    : sessionOptions
   const billableCredits = draft.regBillableCredits === "" ? creditCount : Math.max(0, Number(draft.regBillableCredits) || 0)
   const examFeeCourseCount = draft.regExamCourseCount === "" ? courseCount : Math.max(0, Number(draft.regExamCourseCount) || 0)
   const effectiveSubmissionDate = draft.submissionDate
@@ -324,11 +352,13 @@ export function FormHub() {
   const CategoryIcon = meta.icon
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
+    setPdfReady(null)
+    setPdfError("")
     setDraft((current) => ({ ...current, [key]: value }))
   }
 
   async function handleDownloadPdf() {
-    if (!courseCount || pdfDownloading) return
+    if (!courseCount || pdfDownloading || isOnlineRegistration) return
     setPdfDownloading(true)
     setPdfError("")
     setPdfReady(null)
@@ -378,6 +408,8 @@ export function FormHub() {
   }
 
   function selectCategory(category: FormCategory) {
+    setPdfReady(null)
+    setPdfError("")
     setDraft((current) => ({
       ...current,
       category,
@@ -386,6 +418,8 @@ export function FormHub() {
   }
 
   function selectSemester(semester: string) {
+    setPdfReady(null)
+    setPdfError("")
     setDraft((current) => ({
       ...current,
       semester,
@@ -400,16 +434,18 @@ export function FormHub() {
 
   function applyRegistrationNotice() {
     if (!registrationNotice.enabled || !registrationProfile) return
+    setPdfReady(null)
+    setPdfError("")
     const offeredCodes = registrationProfile.courseCodes.filter((code) =>
       courses.some((course) => course.code === code && course.semester === draft.semester),
     )
     setDraft((current) => ({
       ...current,
       term: registrationNotice.term,
-      session: registrationProfile.session,
+      session: normalizeSession(registrationProfile.session),
       selectedCodes: offeredCodes,
       regBillableCredits: String(registrationProfile.billableCredits),
-      regExamCourseCount: String(registrationProfile.examCourses),
+      regExamCourseCount: offeredCodes.length === registrationProfile.examCourses ? "" : String(registrationProfile.examCourses),
       regPerCredit: String(registrationNotice.fees.perCredit),
       regExamPerCourse: String(registrationNotice.fees.examPerCourse),
       regSemesterFee: String(registrationNotice.fees.semesterRegistration),
@@ -424,6 +460,8 @@ export function FormHub() {
 
   function applyExamNotice() {
     if (!examNotice.enabled) return
+    setPdfReady(null)
+    setPdfError("")
     setDraft((current) => ({
       ...current,
       term: examNotice.term,
@@ -437,6 +475,8 @@ export function FormHub() {
   }
 
   function toggleCourse(code: string) {
+    setPdfReady(null)
+    setPdfError("")
     setDraft((current) => ({
       ...current,
       selectedCodes: current.selectedCodes.includes(code)
@@ -446,6 +486,8 @@ export function FormHub() {
   }
 
   function importResults() {
+    setPdfReady(null)
+    setPdfError("")
     const parsed = parseResultText(resultText)
     const eligibleCodes = parsed.grades
       .filter((item) => {
@@ -459,7 +501,7 @@ export function FormHub() {
       ...(current.category === "registration" ? {} : { selectedCodes: [] }),
       ...(parsed.studentId ? { studentId: parsed.studentId } : {}),
       ...(parsed.studentName ? { studentName: parsed.studentName } : {}),
-      ...(parsed.session ? { session: parsed.session } : {}),
+      ...(parsed.session ? { session: normalizeSession(parsed.session) } : {}),
       ...(parsed.studyCenter ? { studyCenter: parsed.studyCenter } : {}),
     }))
     const report = [
@@ -474,6 +516,8 @@ export function FormHub() {
   }
 
   function useDemo() {
+    setPdfReady(null)
+    setPdfError("")
     setCurrentStep(5)
     setDraft((current) => ({
       ...current,
@@ -498,6 +542,8 @@ export function FormHub() {
   }
 
   function clearDraft() {
+    setPdfReady(null)
+    setPdfError("")
     setDraft({ ...initialDraft })
     setCurrentStep(1)
     setResultText("")
@@ -622,7 +668,12 @@ export function FormHub() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={tr("শিক্ষার্থী আইডি / Student ID", "Student ID / শিক্ষার্থী আইডি")} required><Input value={draft.studentId} onChange={(event) => update("studentId", event.target.value)} placeholder={tr("যেমন: 2023-1-60-000", "Example: 2023-1-60-000")} /></Field>
                 <Field label={tr("শিক্ষার্থীর নাম / Student Name", "Student Name / শিক্ষার্থীর নাম")} required><Input value={draft.studentName} onChange={(event) => update("studentName", event.target.value)} placeholder={tr("BOU রেকর্ড অনুযায়ী লিখুন", "Enter the name shown in BOU records")} /></Field>
-                <Field label={tr("শিক্ষাবর্ষ / Session", "Session / শিক্ষাবর্ষ")}><Input value={draft.session} onChange={(event) => update("session", event.target.value)} placeholder={tr("যেমন: 2023–2024", "Example: 2023–2024")} /></Field>
+                <Field label={tr("শিক্ষাবর্ষ / Session", "Session / শিক্ষাবর্ষ")} required={draft.category === "registration"} info={tr("২০১৬–১৭ থেকে ২০২৯–৩০ পর্যন্ত তালিকা থেকে নির্বাচন করুন। Session অনুযায়ী online অথবা manual আবেদন ঠিক হবে।", "Choose from the 2016–17 to 2029–30 list. The session determines whether registration is online or manual.")}>
+                  <Select value={draft.session || undefined} onValueChange={(value) => update("session", value)}>
+                    <SelectTrigger className="h-10 w-full bg-white text-base"><SelectValue placeholder={tr("Session নির্বাচন করুন", "Select a session")} /></SelectTrigger>
+                    <SelectContent>{availableSessions.map((session) => <SelectItem key={session} value={session} className="text-base">{session}</SelectItem>)}</SelectContent>
+                  </Select>
+                </Field>
                 <Field label={tr("টার্ম / Term", "Term / টার্ম")} hint={tr("BOU-এর তিন অঙ্কের টার্ম কোড", "BOU's three-digit term code")}><Input value={draft.term} onChange={(event) => update("term", event.target.value)} placeholder="252" /></Field>
                 <Field label={tr("স্টাডি সেন্টার / Study Centre", "Study Centre / স্টাডি সেন্টার")} info={tr("CSE প্রোগ্রামের জন্য বর্তমানে DRC (801) এবং DUET (020)—এই দুইটি স্টাডি সেন্টার তালিকাভুক্ত আছে।", "DRC (801) and DUET (020) are currently listed for the CSE programme.")}>
                   <Select value={draft.studyCenter || undefined} onValueChange={(value) => update("studyCenter", value)}>
@@ -632,6 +683,8 @@ export function FormHub() {
                 </Field>
                 <Field label={tr("সম্ভাব্য জমার তারিখ / Form Submission Date", "Form Submission Date / সম্ভাব্য জমার তারিখ")} info={draft.category === "registration" ? tr("তারিখ নিজে নির্বাচন করুন অথবা ‘আজ’ চাপুন। রেজিস্ট্রেশন ফর্মে এটি draft reference হিসেবে থাকবে।", "Choose a date or press Today. It is retained as a draft reference for registration.") : tr("তারিখ নিজে নির্বাচন করুন অথবা ‘আজ’ চাপুন। সাইট deadline-এর সঙ্গে মিলিয়ে জরিমানা দেখাবে।", "Choose a date or press Today. The site compares it with the deadline to calculate any late fine.")}><div className="flex gap-2"><Input type="date" value={draft.submissionDate} onChange={(event) => update("submissionDate", event.target.value)} /><Button type="button" variant="outline" className="today-button button-pop shrink-0" onClick={() => update("submissionDate", localIsoDate())}>{tr("আজ", "Today")}</Button></div></Field>
               </div>
+              {isOnlineRegistration && <Alert className="mt-5 border-[#9fc3dd] bg-[#f1f8fd] text-[#173f5c]"><ExternalLink /><AlertTitle>{tr(`${draft.session} session-এর আবেদন Online`, `Online application required for session ${draft.session}`)}</AlertTitle><AlertDescription className="text-[#345c76]">{tr(`${onlineRegistrationFromSession} session থেকে course registration OSAPS-এ online সম্পন্ন করতে হবে। এই সাইটে course ও fee যাচাই করতে পারবেন, কিন্তু manual PDF application তৈরি হবে না।`, `Course registration from session ${onlineRegistrationFromSession} onward must be completed online in OSAPS. You can verify courses and fees here, but a manual PDF application will not be generated.`)}<div className="mt-3"><Button asChild size="sm" className="brand-primary-button button-pop"><a href={registrationNotice.osapsUrl} target="_blank" rel="noreferrer">{tr("OSAPS-এ আবেদন করুন", "Apply in OSAPS")} <ExternalLink /></a></Button></div></AlertDescription></Alert>}
+              {isManualRegistration && <Alert className="mt-5 border-[#bdd8ca] bg-[#f1f8f4] text-[#214f3d]"><FileCheck2 /><AlertTitle>{tr(`${draft.session} session-এর জন্য Manual/Offline form`, `Manual/offline form for session ${draft.session}`)}</AlertTitle><AlertDescription className="text-[#4d6b5f]">{tr(`${onlineRegistrationFromSession}-এর আগের session হওয়ায় manual form প্রস্তুত ও PDF download করা যাবে। পূরণকৃত form-এ program coordinator-এর সুপারিশ নিয়ে প্রয়োজনীয় hard copy-সহ জমা দিন।`, `Because this session is earlier than ${onlineRegistrationFromSession}, you may prepare and download the manual form. Obtain the programme coordinator's recommendation and submit it with the required hard copies.`)}</AlertDescription></Alert>}
               <div className="mt-5 rounded-xl border border-[#dce5e1] bg-[#f7faf8] p-4">
                 <div className="mb-3 flex items-start gap-2">
                   <CircleHelp className="mt-0.5 size-4 shrink-0 text-[#0b7658]" />
@@ -670,7 +723,7 @@ export function FormHub() {
                 })}</div>}
               </section>
 
-            <Panel hidden={currentStep !== 3} step={tr("ধাপ ৩", "Step 3")} title={tr("সেমিস্টার ও কোর্স নির্বাচন করুন", "Select semester and courses")} copy={draft.category === "registration" ? tr("এই সেমিস্টারে যে সব কোর্স রেজিস্ট্রেশন করবেন, সবগুলো নির্বাচন করুন।", "Select every course you will register for this semester.") : draft.category === "failed" ? tr("শুধু ফেল বা অনুপস্থিত কোর্সগুলো নির্বাচন করুন।", "Select only failed or absent courses.") : tr("শুধু যোগ্য পাস করা কোর্স নিন; F গ্রেড হলে ফেল/অনুপস্থিত বিভাগ ব্যবহার করুন।", "Select only eligible passed courses; use Failed / Absent for an F grade.")}>
+            <Panel hidden={currentStep !== 3} step={tr("ধাপ ৩", "Step 3")} title={tr("সেমিস্টার ও কোর্স নির্বাচন করুন", "Select semester and courses")} copy={draft.category === "registration" ? isOnlineRegistration ? tr("এখানে course ও fee যাচাই করুন; চূড়ান্ত course registration OSAPS-এ সম্পন্ন করতে হবে।", "Verify courses and fees here; complete the final course registration in OSAPS.") : tr("এই সেমিস্টারে যে সব কোর্স manual form-এ রেজিস্ট্রেশন করবেন, সবগুলো নির্বাচন করুন।", "Select every course you will register through the manual form.") : draft.category === "failed" ? tr("শুধু ফেল বা অনুপস্থিত কোর্সগুলো নির্বাচন করুন।", "Select only failed or absent courses.") : tr("শুধু যোগ্য পাস করা কোর্স নিন; F গ্রেড হলে ফেল/অনুপস্থিত বিভাগ ব্যবহার করুন।", "Select only eligible passed courses; use Failed / Absent for an F grade.")}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={tr("বর্ষ ও সেমিস্টার / Year & Semester", "Year & Semester / বর্ষ ও সেমিস্টার")}>
                   <Select value={draft.semester || undefined} onValueChange={selectSemester}>
@@ -705,16 +758,20 @@ export function FormHub() {
                 {semesterCourses.length === 0 && <p className="p-6 text-center text-base text-[#718079]">{tr("মিলে যাওয়া কোনো কোর্স পাওয়া যায়নি।", "No matching courses found.")}</p>}
               </div>
               <p className="mt-3 text-sm text-[#667971]">{tr("নির্বাচিত কোর্স", "Selected courses")}: {courseCount} · {tr("মোট ক্রেডিট", "Total credits")}: {creditCount}</p>
-              {draft.category === "registration" && registrationProfile && courseCount > 0 && (creditCount !== registrationProfile.billableCredits || courseCount !== registrationProfile.examCourses) && <Alert className="mt-4 border-[#e6c26e] bg-[#fffaf0]"><AlertCircle /><AlertTitle>Course list ও notice-এর fee count এক নয়</AlertTitle><AlertDescription>নির্বাচিত তালিকায় {courseCount}টি course ও {creditCount} credit আছে; notice-এর fee হিসাব {registrationProfile.examCourses}টি course ও {registrationProfile.billableCredits} credit ধরে। নিচের editable fee-count ঘরগুলো notice অনুযায়ী রাখা হয়েছে—course list অবশ্যই coordinator-এর সঙ্গে মিলিয়ে নিন।</AlertDescription></Alert>}
+              {draft.category === "registration" && registrationProfile && courseCount > 0 && (creditCount !== registrationProfile.billableCredits || courseCount !== registrationProfile.examCourses) && <Alert className="mt-4 border-[#e6c26e] bg-[#fffaf0]"><AlertCircle /><AlertTitle>Course list ও notice-এর fee count এক নয়</AlertTitle><AlertDescription>নির্বাচিত তালিকায় {courseCount}টি course ও {creditCount} credit আছে; notice-এর fee হিসাব {registrationProfile.examCourses}টি course ও {registrationProfile.billableCredits} credit ধরে। “বর্তমান notice-এর তথ্য বসান” চাপলে এই ব্যতিক্রমটি হিসাবের ঘরে স্বয়ংক্রিয়ভাবে বসবে; course list coordinator-এর সঙ্গে মিলিয়ে নিন।</AlertDescription></Alert>}
             </Panel>
 
-            <Panel hidden={currentStep !== 4} step={tr("ধাপ ৪ · প্রযোজ্য ফি", "Step 4 · Applicable fees")} title={tr("সর্বশেষ নোটিশের ফি লিখুন", "Enter fees from the latest notice")} copy={tr("সর্বশেষ অফিসিয়াল নোটিশ দেখে প্রযোজ্য ফি ও জরিমানার হার লিখুন। এখানে কোনো পুরোনো অঙ্ক আগে থেকে বসানো নেই।", "Use the latest official notice to enter the applicable fees and late-fine rates. No old amount is pre-filled.")}>
+            <Panel hidden={currentStep !== 4} step={tr("ধাপ ৪ · প্রযোজ্য ফি", "Step 4 · Applicable fees")} title={tr("ফি যাচাই করুন", "Review the fees")} copy={tr("বর্তমান নোটিশের পরিচিত ফিগুলো আগে থেকে বসানো আছে। আপনার টার্মের নোটিশে ভিন্ন হলে যেকোনো ঘর সংশোধন করুন।", "Known fees from the current notice are pre-filled. Edit any field if your term notice shows a different amount.")}>
               {draft.category === "registration" ? (
                 <div className="space-y-5">
-                  <Alert className="border-[#cfe1d9] bg-[#f3f8f6]"><Calculator /><AlertTitle>{tr("রেজিস্ট্রেশন ফি পরিবর্তনযোগ্য", "Registration fees are editable")}</AlertTitle><AlertDescription>{tr("প্রোগ্রাম পেজের বর্তমান অঙ্কগুলো প্রাথমিকভাবে দেখানো হয়েছে। আপনার টার্মের নোটিশে ভিন্ন হলে সংশোধন করুন।", "Apply the current notice preset or enter the amounts from your term notice manually.")}</AlertDescription></Alert>
+                  <Alert className="border-[#cfe1d9] bg-[#f3f8f6]"><Calculator /><AlertTitle>{tr("স্বয়ংক্রিয় হিসাব, প্রয়োজনে পরিবর্তনযোগ্য", "Calculated automatically, editable when needed")}</AlertTitle><AlertDescription>{tr("নির্বাচিত কোর্সের সংখ্যা আবার লিখতে হবে না। সেমিস্টার রেজিস্ট্রেশন, মার্কশিট ও একাডেমিক ক্যালেন্ডারের বর্তমান ফিও আগে থেকে দেওয়া আছে—নতুন notice-এ অঙ্ক বদলালে শুধু তখন edit করুন।", "You do not need to enter the selected course count again. Current semester-registration, marksheet, and academic-calendar fees are also pre-filled; edit only when a new notice changes them.")}</AlertDescription></Alert>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <Field label={tr("ফি হিসাবের মোট ক্রেডিট", "Billable credits")} info={tr("নোটিশে যত ক্রেডিটের জন্য টাকা চাওয়া হয়েছে সেটি লিখুন।", "Enter the number of credits charged in the notice.")}><Input type="number" min="0" step="0.25" value={draft.regBillableCredits} onChange={(event) => update("regBillableCredits", event.target.value)} placeholder={tr("যেমন: 18.5", "Example: 18.5")} /></Field>
-                    <Field label={tr("পরীক্ষার ফি প্রযোজ্য কোর্স", "Courses charged for examination")} info={tr("নোটিশের পরীক্ষার ফি লাইনে যতটি কোর্স দিয়ে গুণ করা হয়েছে সেই সংখ্যা লিখুন।", "Enter the number of courses used in the notice's examination-fee calculation.")}><Input type="number" min="0" step="1" value={draft.regExamCourseCount} onChange={(event) => update("regExamCourseCount", event.target.value)} placeholder={tr("যেমন: 9", "Example: 9")} /></Field>
+                    <Field label={tr("ফি হিসাবের মোট ক্রেডিট", "Billable credits")} info={tr("নির্বাচিত কোর্সের মোট ক্রেডিট স্বয়ংক্রিয়ভাবে নেওয়া হয়। Notice-এ ভিন্ন billable credit থাকলে পরিবর্তন করুন।", "Selected-course credits are used automatically. Override only when the notice lists different billable credits.")} hint={draft.regBillableCredits === "" ? tr(`নির্বাচিত কোর্স থেকে স্বয়ংক্রিয়`, `Automatic from selected courses`) : tr("Notice/নিজে দেওয়া সংখ্যা ব্যবহার হচ্ছে", "A notice/manual override is active")}>
+                      {draft.regBillableCredits === "" ? <div className="flex min-h-10 items-center justify-between gap-3 rounded-md border border-[#d3ddd8] bg-[#f8faf9] px-3"><strong>{creditCount}</strong><Button type="button" size="sm" variant="ghost" className="button-pop h-8" onClick={() => update("regBillableCredits", String(creditCount))}>{tr("পরিবর্তন", "Edit")}</Button></div> : <div className="flex gap-2"><Input type="number" min="0" step="0.25" value={draft.regBillableCredits} onChange={(event) => update("regBillableCredits", event.target.value)} /><Button type="button" variant="outline" className="button-pop shrink-0" onClick={() => update("regBillableCredits", "")}>{tr("Auto", "Auto")}</Button></div>}
+                    </Field>
+                    <Field label={tr("পরীক্ষার ফি প্রযোজ্য কোর্স", "Courses charged for examination")} info={tr("আগের ধাপে নির্বাচিত কোর্সের সংখ্যা স্বয়ংক্রিয়ভাবে নেওয়া হয়। Notice-এ পরীক্ষার ফি ভিন্ন সংখ্যক কোর্স ধরে হিসাব করলে এখানে পরিবর্তন করতে পারবেন।", "The selected-course count is used automatically. Override it only if the notice calculates examination fees using a different course count.")} hint={draft.regExamCourseCount === "" ? tr(`নির্বাচিত ${courseCount}টি কোর্স থেকে স্বয়ংক্রিয়`, `Automatic from ${courseCount} selected course${courseCount === 1 ? "" : "s"}`) : tr("নিজে দেওয়া সংখ্যা ব্যবহার হচ্ছে", "A manual override is active")}>
+                      {draft.regExamCourseCount === "" ? <div className="flex min-h-10 items-center justify-between gap-3 rounded-md border border-[#d3ddd8] bg-[#f8faf9] px-3"><strong>{courseCount}</strong><Button type="button" size="sm" variant="ghost" className="button-pop h-8" onClick={() => update("regExamCourseCount", String(courseCount))}>{tr("পরিবর্তন", "Edit")}</Button></div> : <div className="flex gap-2"><Input type="number" min="0" step="1" value={draft.regExamCourseCount} onChange={(event) => update("regExamCourseCount", event.target.value)} aria-label={tr("পরীক্ষার ফি প্রযোজ্য কোর্স সংখ্যা", "Course count charged for examination")} /><Button type="button" variant="outline" className="button-pop shrink-0" onClick={() => update("regExamCourseCount", "")}>{tr("Auto", "Auto")}</Button></div>}
+                    </Field>
                     <MoneyInput label={tr("কোর্স ফি · প্রতি ক্রেডিট", "Course fee · per credit")} info={tr("এক ক্রেডিটের ফি লিখুন।", "Enter the fee for one credit.")} value={draft.regPerCredit} onChange={(value) => update("regPerCredit", value)} />
                     <MoneyInput label={tr("পরীক্ষার ফি · প্রতি কোর্স", "Examination fee · per course")} info={tr("সব কোর্সের মোট নয়—একটি কোর্সের পরীক্ষার ফি লিখুন।", "Enter the examination fee for one course, not the total.")} value={draft.regExamPerCourse} onChange={(value) => update("regExamPerCourse", value)} />
                     <MoneyInput label={tr("সেমিস্টার রেজিস্ট্রেশন", "Semester registration")} value={draft.regSemesterFee} onChange={(value) => update("regSemesterFee", value)} />
@@ -734,7 +791,18 @@ export function FormHub() {
                     {registrationBreakdown.transcript > 0 && <FeePreviewLine label="Transcript" value={registrationBreakdown.transcript} />}
                     <div className="grid grid-cols-[1fr_auto] border-t-2 border-[#223b32] px-4 py-3 font-bold"><span>{tr("মোট", "Total")}</span><span>৳{money(registrationTotal)}</span></div>
                   </div>
-                  <div className="rounded-xl border border-[#cfe1d9] bg-[#f7faf8] p-4"><h3 className="text-base font-semibold text-[#29443a]">জমা দেওয়ার আগে checklist</h3><div className="mt-3 grid gap-2 text-sm text-[#52665d] sm:grid-cols-2"><CheckItem text="পূরণকৃত course registration form" /><CheckItem text="Student ID card-এর copy" /><CheckItem text="ব্যাংক receipt-এর hard copy" /><CheckItem text="নির্ধারিত সময়ের মধ্যে Dhaka Regional Centre-এ জমা" /></div><p className="mt-3 text-sm leading-6 text-[#697a73]">প্রথমে OSAPS-এ online registration সম্পন্ন করুন, তারপর notice অনুযায়ী form ও কাগজপত্রের hard copy জমা দিন।</p></div>
+                  <div className="rounded-xl border border-[#cfe1d9] bg-[#f7faf8] p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-base font-semibold text-[#29443a]">{tr("জমা দেওয়ার সময় প্রয়োজনীয় কাগজপত্র", "Documents required at submission")}</h3><p className="mt-1 text-sm leading-6 text-[#697a73]">{tr("Term 252 registration notice-এর ‘প্রয়োজনীয় কাগজসমূহ’ অংশ অনুযায়ী।", "Based on the ‘Required documents’ section of the Term 252 registration notice.")}</p></div>{isOnlineRegistration && <Badge className="bg-[#e4f1fa] text-[#24536f] hover:bg-[#e4f1fa]">{tr("Online application", "Online application")}</Badge>}{isManualRegistration && <Badge className="bg-[#e7f4ed] text-[#245a43] hover:bg-[#e7f4ed]">{tr("Manual form", "Manual form")}</Badge>}</div>
+                    <div className="mt-3 grid gap-2 text-sm text-[#52665d] sm:grid-cols-2">
+                      {isOnlineRegistration && <CheckItem text={tr("OSAPS-এ online course registration সম্পন্ন করা", "Complete online course registration in OSAPS")} />}
+                      <CheckItem text={tr("Student ID card-এর copy (মূল কার্ড সঙ্গে রাখুন)", "Copy of the Student ID card (carry the original)")} />
+                      <CheckItem text={tr("ফি জমার bank receipt / bank slip-এর hard copy", "Hard copy of the fee-deposit bank receipt/slip")} />
+                      <CheckItem text={tr("Program Coordinator কর্তৃক সুপারিশকৃত পূরণকৃত course registration form", "Completed course-registration form recommended by the Programme Coordinator")} />
+                      <CheckItem text={tr("Notice-এ চাওয়া অন্যান্য সহায়ক কাগজপত্র, যদি থাকে", "Any other supporting document required by the notice")} />
+                      <CheckItem text={tr("নির্ধারিত সময়ের মধ্যে Dhaka Regional Centre-এ hard copy জমা", "Submit the hard copies to Dhaka Regional Centre within the deadline")} />
+                    </div>
+                    <p className="mt-3 rounded-lg border border-[#d9e5df] bg-white px-3 py-2.5 text-sm leading-6 text-[#566b62]">{isOnlineRegistration ? tr("Online আবেদন করলেই প্রক্রিয়া শেষ নয়—উপরের hard copies নির্ধারিত সময়ে জমা দিয়ে registration সম্পন্ন করতে হবে; অন্যথায় পরীক্ষায় অংশ নেওয়া যাবে না।", "The online application alone does not complete registration. Submit the listed hard copies within the deadline; otherwise you may not be allowed to sit the examination.") : tr("Manual form-এ Program Coordinator-এর সুপারিশ/স্বাক্ষর নিয়ে bank receipt ও অন্যান্য hard copies নির্ধারিত সময়ে জমা দিন।", "Obtain the Programme Coordinator's recommendation/signature on the manual form and submit it with the bank receipt and other hard copies within the deadline.")}</p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-5">
@@ -776,9 +844,10 @@ export function FormHub() {
                 <div><p className="step-kicker">{tr("ধাপ ৫ · চূড়ান্ত যাচাই", "Step 5 · Final review")}</p><h2 className="section-title">{tr("পূর্ণ ফর্ম প্রিভিউ", "Full form preview")}</h2><p className="section-copy">{tr("PDF তৈরির আগে নিচের সব তথ্য মিলিয়ে নিন। কোনো অংশে ভুল থাকলে Edit বাটনে চাপুন।", "Check every detail below before generating the PDF. Use an Edit button to return to the relevant step.")}</p></div>
                 <Badge className="bg-[#e8f4ef] text-[#075e45] hover:bg-[#e8f4ef]"><CheckCircle2 /> {tr("শেষ ধাপ", "Final step")}</Badge>
               </div>
+              {isOnlineRegistration && <Alert className="mb-5 border-[#9fc3dd] bg-[#f1f8fd] text-[#173f5c]"><ExternalLink /><AlertTitle>{tr("এটি application summary—manual form নয়", "This is an application summary, not a manual form")}</AlertTitle><AlertDescription className="text-[#345c76]">{tr(`${draft.session} session-এর চূড়ান্ত আবেদন OSAPS-এ করুন। এই screen শুধু course, fee ও জমার documents যাচাই করতে সাহায্য করবে; PDF download বন্ধ রাখা হয়েছে।`, `Complete the final application for session ${draft.session} in OSAPS. This screen only helps verify courses, fees, and submission documents; manual PDF download is disabled.`)}</AlertDescription></Alert>}
               <div className="full-form-preview">
                 <div className="full-preview-brand"><Image src="/bou-logo.png" width={250} height={224} alt="Bangladesh Open University logo" unoptimized /><div><h3>Bangladesh Open University</h3><p>School of Science and Technology</p><p>Board Bazar, Gazipur-1705, Bangladesh</p></div></div>
-                <div className="full-preview-title"><h3>{draft.category === "registration" ? "SEMESTER REGISTRATION FORM" : draft.category === "improvement" ? "IMPROVE REGISTRATION FORM" : "RE-EXAM REGISTRATION FORM"}</h3><p>(Bank receipt must be enclosed with the Form)</p><p>{paymentDetails.bankName}, {paymentDetails.bankBranch} · Online A/C: {paymentDetails.accountNumber}</p></div>
+                <div className="full-preview-title"><h3>{isOnlineRegistration ? "ONLINE REGISTRATION PREPARATION" : draft.category === "registration" ? "SEMESTER REGISTRATION FORM" : draft.category === "improvement" ? "IMPROVE REGISTRATION FORM" : "RE-EXAM REGISTRATION FORM"}</h3><p>{isOnlineRegistration ? "(Complete the official application in OSAPS)" : "(Bank receipt must be enclosed with the Form)"}</p><p>{paymentDetails.bankName}, {paymentDetails.bankBranch} · Online A/C: {paymentDetails.accountNumber}</p></div>
                 <div className="review-section-heading"><span>{tr("শিক্ষার্থীর তথ্য", "Student details")}</span><button type="button" onClick={() => goToStep(2)}>{tr("সম্পাদনা", "Edit")}</button></div>
                 <dl className="review-details"><div><dt>Student ID</dt><dd>{draft.studentId || "—"}</dd></div><div><dt>Student Name</dt><dd>{draft.studentName || "—"}</dd></div><div><dt>Year & Semester</dt><dd>{semesterNames[draft.semester] || "—"}</dd></div><div><dt>Study Centre</dt><dd>{studyCenters.find((center) => center.code === draft.studyCenter)?.name || "—"}{draft.studyCenter ? ` — ${draft.studyCenter}` : ""}</dd></div><div><dt>Session</dt><dd>{draft.session || "—"}</dd></div><div><dt>Term</dt><dd>{draft.term || "—"}</dd></div></dl>
                 <div className="review-section-heading"><span>{tr("নির্বাচিত কোর্স", "Selected courses")}</span><button type="button" onClick={() => goToStep(3)}>{tr("সম্পাদনা", "Edit")}</button></div>
@@ -786,7 +855,8 @@ export function FormHub() {
                 <div className="review-section-heading"><span>{tr("ফি বিবরণ", "Fee details")}</span><button type="button" onClick={() => goToStep(4)}>{tr("সম্পাদনা", "Edit")}</button></div>
                 <div className="review-fees">{draft.category === "registration" ? <><MoneyLine label={tr("কোর্স রেজিস্ট্রেশন", "Course registration")} value={registrationBreakdown.course} /><MoneyLine label={tr("পরীক্ষার ফি", "Examination fee")} value={registrationBreakdown.exam} /><MoneyLine label={tr("সেমিস্টার রেজিস্ট্রেশন", "Semester registration")} value={registrationBreakdown.semester} /><MoneyLine label={tr("সেমিস্টার মার্কশিট", "Semester marksheet")} value={registrationBreakdown.marksheet} />{registrationBreakdown.calendar > 0 && <MoneyLine label={tr("একাডেমিক ক্যালেন্ডার", "Academic calendar")} value={registrationBreakdown.calendar} />}</> : <><MoneyLine label={tr(draft.category === "improvement" ? "ইমপ্রুভমেন্ট ফি" : "পুনঃপরীক্ষা ফি", draft.category === "improvement" ? "Improvement fee" : "Re-examination fee")} value={examBaseTotal} />{lateTotal > 0 && <MoneyLine label={tr(`বিলম্ব জরিমানা · ${lateDays} দিন`, `Late fine · ${lateDays} days`)} value={lateTotal} />}</>}<div className="review-total"><span>{tr("আনুমানিক মোট", "Estimated total")}</span><strong>৳{money(total)}</strong></div></div>
               </div>
-              <div className="mt-5 flex flex-wrap gap-3"><Button type="button" className="brand-accent-button button-pop" onClick={handleDownloadPdf} disabled={!courseCount || pdfDownloading}><Download /> {pdfDownloading ? tr("PDF তৈরি হচ্ছে…", "Generating PDF…") : tr("PDF ডাউনলোড করুন", "Download PDF")}</Button><Button type="button" variant="outline" onClick={() => window.print()} disabled={!courseCount}><Printer /> Print / Save as PDF</Button></div>
+              {draft.category === "registration" && <div className="mt-5 rounded-xl border border-[#d4dfda] bg-[#f8faf9] p-4"><h3 className="text-base font-semibold text-[#29443a]">{tr("Hard-copy submission checklist", "Hard-copy submission checklist")}</h3><div className="mt-3 grid gap-2 text-sm text-[#52665d] sm:grid-cols-2"><CheckItem text={tr("Student ID card-এর copy", "Copy of Student ID card")} /><CheckItem text={tr("Bank receipt/slip-এর hard copy", "Hard copy of bank receipt/slip")} /><CheckItem text={tr("Coordinator-এর সুপারিশসহ পূরণকৃত registration form", "Completed registration form with coordinator recommendation")} /><CheckItem text={tr("Deadline-এর মধ্যে Dhaka Regional Centre-এ জমা", "Submit to Dhaka Regional Centre by the deadline")} /></div></div>}
+              <div className="mt-5 flex flex-wrap gap-3">{isOnlineRegistration ? <Button asChild className="brand-primary-button button-pop"><a href={registrationNotice.osapsUrl} target="_blank" rel="noreferrer">{tr("OSAPS-এ চূড়ান্ত আবেদন করুন", "Complete application in OSAPS")} <ExternalLink /></a></Button> : <><Button type="button" className="brand-accent-button button-pop" onClick={handleDownloadPdf} disabled={!courseCount || pdfDownloading}><Download /> {pdfDownloading ? tr("PDF তৈরি হচ্ছে…", "Generating PDF…") : tr("PDF ডাউনলোড করুন", "Download PDF")}</Button><Button type="button" variant="outline" onClick={() => window.print()} disabled={!courseCount}><Printer /> Print / Save as PDF</Button></>}</div>
             </section>}
 
             <section className={`${currentStep === 5 ? "" : "hidden"} rounded-2xl border border-[#d8e1dd] bg-white p-4 sm:p-6`}>
@@ -807,26 +877,24 @@ export function FormHub() {
             <div className="wizard-actions">
               <Button type="button" variant="outline" onClick={() => goToStep(currentStep - 1)} disabled={currentStep === 1}><ArrowLeft /> {tr("পেছনে", "Back")}</Button>
               <p>{tr(`ধাপ ${currentStep} / ৫`, `Step ${currentStep} of 5`)}</p>
-              {currentStep < 5 && <Button type="button" className="brand-primary-button button-pop" onClick={() => goToStep(currentStep + 1)} disabled={(currentStep === 2 && (!draft.studentId.trim() || !draft.studentName.trim())) || (currentStep === 3 && !courseCount)}>{currentStep === 4 ? tr("পূর্ণ প্রিভিউ দেখুন", "View full preview") : tr("পরবর্তী ধাপ", "Next step")} <ArrowRight /></Button>}
+              {currentStep < 5 && <Button type="button" className="brand-primary-button button-pop" onClick={() => goToStep(currentStep + 1)} disabled={(currentStep === 2 && (!draft.studentId.trim() || !draft.studentName.trim() || (draft.category === "registration" && !draft.session))) || (currentStep === 3 && !courseCount)}>{currentStep === 4 ? tr("পূর্ণ প্রিভিউ দেখুন", "View full preview") : tr("পরবর্তী ধাপ", "Next step")} <ArrowRight /></Button>}
             </div>
-            {currentStep === 2 && (!draft.studentId.trim() || !draft.studentName.trim()) && <p className="wizard-validation-note">{tr("পরবর্তী ধাপে যেতে Student ID ও Student Name লিখুন।", "Enter Student ID and Student Name to continue.")}</p>}
+            {currentStep === 2 && (!draft.studentId.trim() || !draft.studentName.trim() || (draft.category === "registration" && !draft.session)) && <p className="wizard-validation-note">{tr(`পরবর্তী ধাপে যেতে Student ID, Student Name${draft.category === "registration" ? " ও Session" : ""} দিন।`, `Enter Student ID, Student Name${draft.category === "registration" ? ", and Session" : ""} to continue.`)}</p>}
             {currentStep === 3 && !courseCount && <p className="wizard-validation-note">{tr("পরবর্তী ধাপে যেতে অন্তত একটি কোর্স নির্বাচন করুন।", "Select at least one course to continue.")}</p>}
           </div>
 
           <aside className="xl:sticky xl:top-5 xl:self-start print:hidden">
             <div className="rounded-2xl border border-[#cfdad5] bg-white p-5 shadow-[0_18px_55px_rgba(19,49,39,0.09)]">
               <div className="mb-5 flex items-start justify-between gap-3"><div><p className="step-kicker">{tr("তাৎক্ষণিক সারসংক্ষেপ", "Live summary")}</p><h2 className="text-xl font-bold text-[#16372c]">{tr("ফর্ম প্রিভিউ", "Form preview")}</h2></div><span className="grid size-10 place-items-center rounded-xl bg-[#e7f2ed] text-[#075e45]"><CategoryIcon /></span></div>
-              <div className="space-y-3 text-base"><SummaryLine label={tr("ফর্মের ধরন", "Form type")} value={isBn ? meta.bn : meta.label} /><SummaryLine label={tr("শিক্ষার্থী", "Student")} value={draft.studentName || tr("লেখা হয়নি", "Not entered")} muted={!draft.studentName} /><SummaryLine label={tr("টার্ম", "Term")} value={draft.term || "—"} /><SummaryLine label={tr("কোর্স", "Courses")} value={String(courseCount)} />{draft.category === "registration" && <SummaryLine label={tr("নির্বাচিত ক্রেডিট", "Selected credits")} value={String(creditCount)} />}{draft.category === "registration" && <SummaryLine label={tr("ফি হিসাবের ক্রেডিট", "Billable credits")} value={String(billableCredits)} />}</div>
+              <div className="space-y-3 text-base"><SummaryLine label={tr("ফর্মের ধরন", "Form type")} value={isBn ? meta.bn : meta.label} />{draft.category === "registration" && draft.session && <SummaryLine label={tr("আবেদনের মাধ্যম", "Application method")} value={isOnlineRegistration ? tr("Online · OSAPS", "Online · OSAPS") : tr("Manual / Offline", "Manual / Offline")} />}<SummaryLine label={tr("শিক্ষার্থী", "Student")} value={draft.studentName || tr("লেখা হয়নি", "Not entered")} muted={!draft.studentName} /><SummaryLine label={tr("টার্ম", "Term")} value={draft.term || "—"} /><SummaryLine label={tr("কোর্স", "Courses")} value={String(courseCount)} />{draft.category === "registration" && <SummaryLine label={tr("নির্বাচিত ক্রেডিট", "Selected credits")} value={String(creditCount)} />}{draft.category === "registration" && <SummaryLine label={tr("ফি হিসাবের ক্রেডিট", "Billable credits")} value={String(billableCredits)} />}</div>
               {courseCount > 0 && <div className="mt-4 border-y border-[#e2e8e5] py-3">{selectedCourses.map((course) => <p key={course.code} className="py-1 text-xs text-[#52645d]"><strong className="text-[#213c32]">{course.code}</strong> · {course.title}</p>)}</div>}
               <div className="mt-5 space-y-2">
                 {draft.category === "registration" ? <><MoneyLine label={tr("কোর্স রেজিস্ট্রেশন", "Course registration")} value={registrationBreakdown.course} /><MoneyLine label={tr("পরীক্ষার ফি", "Examination fee")} value={registrationBreakdown.exam} /><MoneyLine label={tr("সেমিস্টার রেজিস্ট্রেশন", "Semester registration")} value={registrationBreakdown.semester} /><MoneyLine label={tr("সেমিস্টার মার্কশিট", "Semester marksheet")} value={registrationBreakdown.marksheet} />{registrationBreakdown.calendar > 0 && <MoneyLine label={tr("একাডেমিক ক্যালেন্ডার", "Academic calendar")} value={registrationBreakdown.calendar} />}{registrationBreakdown.certificate > 0 && <MoneyLine label={tr("মূল সনদপত্র", "Original certificate")} value={registrationBreakdown.certificate} />}{registrationBreakdown.transcript > 0 && <MoneyLine label={tr("ট্রান্সক্রিপ্ট", "Transcript")} value={registrationBreakdown.transcript} />}</> : <><MoneyLine label={tr(`${draft.category === "improvement" ? "ইমপ্রুভমেন্ট" : "পুনঃপরীক্ষা"} ফি`, `${draft.category === "improvement" ? "Improvement" : "Re-examination"} fee`)} value={examBaseTotal} />{lateTotal > 0 && <MoneyLine label={tr(`বিলম্ব জরিমানা · ${lateDays} দিন`, `Late fine · ${lateDays} days`)} value={lateTotal} />}</>}
                 <div className="mt-3 flex items-end justify-between border-t-2 border-[#193b30] pt-3"><span className="font-semibold">{tr("আনুমানিক মোট", "Estimated total")}</span><span className="text-2xl font-bold text-[#075e45]">৳{money(total)}</span></div>
               </div>
-              <Button type="button" className="brand-accent-button button-pop mt-5 w-full" onClick={handleDownloadPdf} disabled={!courseCount || pdfDownloading}><Download /> {pdfDownloading ? tr("PDF তৈরি হচ্ছে…", "Generating PDF…") : tr("PDF ডাউনলোড করুন", "Download PDF")}</Button>
-              {pdfReady && <a href={pdfReady.url} download={pdfReady.fileName} className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-[#8eb9a9] bg-[#edf7f3] px-4 py-2.5 text-sm font-semibold text-[#075e45] hover:bg-[#e3f2ec]"><Download className="size-4" />{tr("PDF প্রস্তুত—এখানে চাপুন", "PDF ready—click here")}</a>}
-              <Button type="button" variant="outline" className="mt-2 w-full border-[#b9cbc4]" onClick={() => window.print()} disabled={!courseCount}><Printer /> Print / Save as PDF</Button>
+              {isOnlineRegistration ? <><div className="mt-5 rounded-lg border border-[#b9d3e4] bg-[#f1f8fd] px-3 py-3 text-sm leading-6 text-[#345c76]"><strong className="block text-[#173f5c]">{tr("Online আবেদন আবশ্যক", "Online application required")}</strong>{tr("এই session-এর জন্য manual PDF গ্রহণযোগ্য নয়। OSAPS-এ আবেদন সম্পন্ন করুন।", "A manual PDF is not valid for this session. Complete the application in OSAPS.")}</div><Button asChild className="brand-primary-button button-pop mt-3 w-full"><a href={registrationNotice.osapsUrl} target="_blank" rel="noreferrer">{tr("OSAPS-এ আবেদন করুন", "Apply in OSAPS")} <ExternalLink /></a></Button></> : <><Button type="button" className="brand-accent-button button-pop mt-5 w-full" onClick={handleDownloadPdf} disabled={!courseCount || pdfDownloading}><Download /> {pdfDownloading ? tr("PDF তৈরি হচ্ছে…", "Generating PDF…") : tr("PDF ডাউনলোড করুন", "Download PDF")}</Button>{pdfReady && <a href={pdfReady.url} download={pdfReady.fileName} className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-[#8eb9a9] bg-[#edf7f3] px-4 py-2.5 text-sm font-semibold text-[#075e45] hover:bg-[#e3f2ec]"><Download className="size-4" />{tr("PDF প্রস্তুত—এখানে চাপুন", "PDF ready—click here")}</a>}<Button type="button" variant="outline" className="mt-2 w-full border-[#b9cbc4]" onClick={() => window.print()} disabled={!courseCount}><Printer /> Print / Save as PDF</Button></>}
               {pdfError && <p className="mt-3 rounded-lg bg-[#fff2f2] px-3 py-2 text-center text-sm leading-6 text-[#9c2f35]">{pdfError}</p>}
-              <p className="mt-3 text-center text-sm leading-6 text-[#718079]">{tr("প্রথম বোতাম PDF তৈরি করে download শুরু করবে। Browser automatic download আটকালে ‘PDF প্রস্তুত’ link-এ চাপুন।", "The first button creates and downloads the PDF. If the browser blocks it, use the ‘PDF ready’ link.")}</p>
+              <p className="mt-3 text-center text-sm leading-6 text-[#718079]">{isOnlineRegistration ? tr("OSAPS-এর আবেদন complete করার পর notice অনুযায়ী hard copies জমা দিন।", "After completing OSAPS, submit the hard copies required by the notice.") : tr("প্রথম বোতাম PDF তৈরি করে download শুরু করবে। Browser automatic download আটকালে ‘PDF প্রস্তুত’ link-এ চাপুন।", "The first button creates and downloads the PDF. If the browser blocks it, use the ‘PDF ready’ link.")}</p>
             </div>
             <div className="mt-4 rounded-xl border border-[#d8e1dd] bg-[#edf4f1] p-4 text-sm leading-6 text-[#52665d]"><strong className="text-[#274338]">{tr("ফলাফলের গোপনীয়তা:", "Result privacy:")}</strong> {tr("ফলাফল কপি-পেস্ট করলে কোনো লগইন তথ্য শেয়ার করতে হয় না এবং তথ্য আপনার ডিভাইসের বাইরে যায় না।", "Copying and pasting a result requires no login details, and the data never leaves your device.")}</div>
           </aside>
@@ -834,10 +902,10 @@ export function FormHub() {
 
         <div className="mobile-summary-bar print:hidden">
           <button type="button" className="mobile-summary-main" onClick={() => goToStep(5)}><span>{courseCount} {tr("কোর্স", "courses")}</span><strong>৳{money(total)}</strong><small>{tr("পূর্ণ প্রিভিউ", "Full preview")}</small></button>
-          <Button type="button" size="sm" className="brand-accent-button button-pop" onClick={handleDownloadPdf} disabled={!courseCount || pdfDownloading}><Download /> PDF</Button>
+          {isOnlineRegistration ? <Button asChild size="sm" className="brand-primary-button button-pop"><a href={registrationNotice.osapsUrl} target="_blank" rel="noreferrer">OSAPS <ExternalLink /></a></Button> : <Button type="button" size="sm" className="brand-accent-button button-pop" onClick={handleDownloadPdf} disabled={!courseCount || pdfDownloading}><Download /> PDF</Button>}
         </div>
 
-        <PrintableForm draft={draft} selectedCourses={selectedCourses} gradeMap={gradeMap} lateDays={lateDays} latePerCourse={latePerCourse} total={total} registrationBreakdown={registrationBreakdown} />
+        {!isOnlineRegistration && <PrintableForm draft={draft} selectedCourses={selectedCourses} gradeMap={gradeMap} lateDays={lateDays} latePerCourse={latePerCourse} total={total} registrationBreakdown={registrationBreakdown} />}
       </div>
 
       <footer className="border-t border-[#dce3df] bg-white pb-20 print:hidden xl:pb-0"><div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-sm text-[#6a7b74] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"><p>{tr("স্বতন্ত্র শিক্ষার্থী সহায়িকা · বাংলাদেশ উন্মুক্ত বিশ্ববিদ্যালয়ের অফিসিয়াল সেবা নয়।", "Independent student guide · Not an official Bangladesh Open University service.")}</p><p>{tr("নিয়ম: CSE Handbook পৃষ্ঠা ১৯–২১ ও ৩৪–৩৫।", "Rules: CSE Handbook, pages 19–21 and 34–35.")}</p></div></footer>

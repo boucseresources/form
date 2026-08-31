@@ -8,6 +8,7 @@
 
 - **enabled**: বর্তমান preset দেখাতে true
 - **term, published, registrationFrom, registrationTo**
+- **onlineRegistrationFromSession**: যে session থেকে OSAPS-এ online আবেদন বাধ্যতামূলক (বর্তমানে `2024-25`); এর আগের session manual/offline form ব্যবহার করবে
 - **fees**: প্রতি credit, প্রতি course এবং অন্যান্য fee
 - **profiles**: সংশ্লিষ্ট semester-এর session, fee হিসাবের credit/course count, class date ও notice total
 - **courseCodes**: notice-এ যে courseগুলো offer করা হয়েছে

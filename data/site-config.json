@@ -21,6 +21,7 @@
   ],
   "registrationNotice": {
     "enabled": true,
+    "onlineRegistrationFromSession": "2024-25",
     "term": "252",
     "published": "14 August 2026",
     "registrationFrom": "21 September 2026",
