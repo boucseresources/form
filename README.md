@@ -5,11 +5,13 @@ An unofficial, privacy-friendly helper for preparing BOU B.Sc in CSE course regi
 ## What it does
 
 - One adaptive form with context-sensitive fields for all three application types.
+- Five-step guided flow with a persistent live calculation panel and final full-form review.
+- Bangla/English language switch saved on the student's device.
 - Editable fee, deadline, and late-fine inputs; no annual code change is required when a notice changes.
 - Full eight-semester course catalog from the CSE Handbook.
 - Handbook-based improvement eligibility explanations.
 - Local-only result-text parsing and draft saving. No database, account, or server-side student data.
-- Browser print layout for A4 PDF output.
+- Direct PDF download plus browser print fallback for the official A4 layout.
 - Direct links to official BOU results, handbooks, program details, and notices.
 
 ## Deploy to Vercel
